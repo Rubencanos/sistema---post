@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema POS - Software Unico Canos Embalse</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f6fa; }
+
+        /* LOGIN */
+        .login-container {
+            display: flex; justify-content: center; align-items: center;
+            min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .login-box {
+            background: white; padding: 40px; border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); width: 350px; text-align: center;
+        }
+        .login-box h2 { color: #333; margin-bottom: 10px; }
+        .login-box .subtitle { color: #666; margin-bottom: 20px; }
+        .login-box input {
+            width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ddd;
+            border-radius: 5px; font-size: 14px;
+        }
+        .login-box button {
+            width: 100%; padding: 12px; margin-top: 15px; background: #667eea;
+            color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px;
+        }
+        .login-box button:hover { background: #5a6fd6; }
+        .error-msg { color: #e74c3c; font-size: 13px; margin-top: 10px; }
+
+        /* LAYOUT PRINCIPAL */
+        .app-container { display: none; }
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: 220px; height: 100vh;
+            background: #2c3e50; color: white; overflow-y: auto; padding: 20px 0;
+        }
+        .sidebar h3 { text-align: center; padding: 10px; border-bottom: 1px solid #34495e; }
+        .sidebar ul { list-style: none; }
+        .sidebar li { padding: 12px 20px; cursor: pointer; transition: background 0.2s; }
+        .sidebar li:hover, .sidebar li.active { background: #34495e; }
+        .sidebar li a { color: white; text-decoration: none; display: block; }
+        .main-content { margin-left: 220px; padding: 20px; }
+        .header {
+            background: white; padding: 15px 20px; border-radius: 8px;
+            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .content-card {
+            background: white; padding: 20px; border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        /* TABLAS Y FORMULARIOS */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #f8f9fa; font-weight: 600; color: #555; }
+        tr:hover { background: #f8f9fa; }
+        .btn {
+            padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer;
+            font-size: 13px; margin: 2px;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-warning { background: #f39c12; color: white; }
+        .btn:hover { opacity: 0.85; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; margin-bottom: 4px; font-weight: 500; color: #555; }
+        .form-group input, .form-group select {
+            width: 100%; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px;
+        }
+        .form-row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .form-row .form-group { flex: 1; min-width: 150px; }
+
+        /* DASHBOARD */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card {
+            background: white; padding: 20px; border-radius: 8px; text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .stat-card .value { font-size: 28px; font-weight: bold; color: #2c3e50; }
+        .stat-card .label { color: #7f8c8d; font-size: 13px; margin-top: 5px; }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal {
+            background: white; padding: 25px; border-radius: 8px; width: 90%; max-width: 500px;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal h3 { margin-bottom: 15px; }
+        .modal .close { float: right; cursor: pointer; font-size: 20px; }
+
+        /* TABLAS EDITABLES */
+        .tabla-editable th {
+            position: relative;
+            user-select: none;
+            cursor: grab;
+            white-space: nowrap;
+        }
+        .tabla-editable th:active { cursor: grabbing; }
+        .tabla-editable th .resize-handle {
+            position: absolute;
+            right: 0;
+            top: 0;
+            width: 5px;
+            height: 100%;
+            cursor: col-resize;
+            background: transparent;
+        }
+        .tabla-editable th .resize-handle:hover,
+        .tabla-editable th .resize-handle.resizing {
+            background: #3498db;
+        }
+        .tabla-editable th.dragging {
+            opacity: 0.5;
+            background: #e3f2fd;
+        }
+        .tabla-editable th.drag-over {
+            border-left: 3px solid #3498db;
+        }
+        .tabla-editable td {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .btn-edit { background: #3498db; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-ventas { background: #27ae60; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-cotiz { background: #9b59b6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-cuenta { background: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-recibos { background: #1abc9c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-info { background: #2ecc71; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .btn-delete { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 12px; margin: 1px; }
+        .badge-iva { background: #3498db; color: white; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
+        .pago-pendiente { color: #27ae60; font-weight: bold; }
+        .stock-rojo { color: #e74c3c; font-weight: bold; }
+        .stock-bajo { background: #fff3cd; }
+        .content-card { background: #1a1a2e; color: #eee; border-radius: 8px; }
+        .content-card h3 { color: #fff; }
+        .content-card table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .content-card th { background: #16213e; color: #aaa; padding: 10px 12px; text-align: left; font-size: 12px; text-transform: uppercase; }
+        .content-card td { padding: 10px 12px; border-bottom: 1px solid #2a2a4a; color: #ddd; }
+        .content-card tr:hover { background: #16213e; }
+        .content-card input, .content-card select { background: #16213e; color: #eee; border: 1px solid #2a2a4a; padding: 8px 12px; border-radius: 4px; }
+        .content-card input::placeholder { color: #666; }
+        .venta-buscar { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .venta-buscar label { display: block; margin-bottom: 8px; color: #aaa; font-size: 13px; }
+        .venta-productos { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .venta-productos h4 { color: #fff; margin-bottom: 10px; }
+        .venta-total { text-align: right; font-size: 24px; font-weight: bold; color: #27ae60; margin: 15px 0; }
+        .venta-completar { background: #16213e; padding: 15px; border-radius: 8px; }
+        .venta-completar h4 { color: #fff; margin-bottom: 10px; }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar { width: 60px; }
+            .sidebar h3, .sidebar li a span { display: none; }
+            .main-content { margin-left: 60px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-container">
+    <div class="login-box">
+        <h2>Software Unico De Canos Embalse</h2>
+        <p class="subtitle">Sistema POS - Inicia sesion para continuar</p>
+        <form id="loginForm">
+            <input type="text" id="loginUser" placeholder="Usuario" required>
+            <input type="password" id="loginPass" placeholder="Contrasena" required>
+            <button type="submit">Ingresar</button>
+        </form>
+        <p id="loginError" class="error-msg"></p>
+    </div>
+</div>
+
+<!-- APP -->
+<div id="appScreen" class="app-container">
+    <div class="sidebar">
+        <h3>POS Canos Embalse</h3>
+        <ul id="menu">
+            <li data-page="dashboard" class="active" onclick="showPage('dashboard')">📊 Dashboard</li>
+            <li data-page="ventas" onclick="showPage('ventas')">🛒 Registrar Venta</li>
+            <li data-page="productos" onclick="showPage('productos')">📦 Productos</li>
+            <li data-page="categorias" onclick="showPage('categorias')">🏷️ Categorias</li>
+            <li data-page="proveedores" onclick="showPage('proveedores')">🚚 Proveedores</li>
+            <li data-page="clientes" onclick="showPage('clientes')">👥 Clientes</li>
+            <li data-page="compras" onclick="showPage('compras')">🛍️ Compras</li>
+            <li data-page="historial" onclick="showPage('historial')">📋 Historial Ventas</li>
+            <li data-page="facturas" onclick="showPage('facturas')">🧾 Facturas</li>
+            <li data-page="cotizaciones" onclick="showPage('cotizaciones')">📄 Cotizaciones</li>
+            <li data-page="gastos" onclick="showPage('gastos')">💰 Gastos</li>
+            <li data-page="reportes" onclick="showPage('reportes')">📈 Reportes</li>
+            <li data-page="usuarios" onclick="showPage('usuarios')">👤 Usuarios</li>
+            <li onclick="logout()" style="border-top: 1px solid #34495e; margin-top: 10px;">🚪 Cerrar Sesion</li>
+        </ul>
+    </div>
+    <div class="main-content">
+        <div class="header">
+            <h2 id="pageTitle">Dashboard</h2>
+            <div>
+                <span id="userInfo"></span>
+            </div>
+        </div>
+        <div id="content"></div>
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="modal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
+    <div class="modal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3 id="modalTitle"></h3>
+        <div id="modalBody"></div>
+    </div>
+</div>
+
+<script>
+const API = '';
+let currentUser = null;
+
+// ========== LOGIN ==========
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('loginUser').value;
+    const password = document.getElementById('loginPass').value;
+    const res = await fetch(API + '/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+        currentUser = data.user;
+        localStorage.setItem('pos_user', JSON.stringify(currentUser));
+        showApp();
+    } else {
+        document.getElementById('loginError').textContent = data.message;
+    }
+});
+
+function logout() {
+    localStorage.removeItem('pos_user');
+    location.reload();
+}
+
+function showApp() {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('appScreen').style.display = 'block';
+    document.getElementById('userInfo').textContent = 'Hola, ' + currentUser.username;
+    showPage('dashboard');
+}
+
+// Verificar sesion guardada
+const savedUser = localStorage.getItem('pos_user');
+if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    showApp();
+}
+
+// ========== NAVEGACION ==========
+function showPage(page) {
+    document.querySelectorAll('#menu li').forEach(li => li.classList.remove('active'));
+    document.querySelector(`#menu li[data-page="${page}"]`)?.classList.add('active');
+
+    const titles = {
+        dashboard: 'Dashboard', ventas: 'Registrar Venta', productos: 'Productos',
+        categorias: 'Categorias', proveedores: 'Proveedores', clientes: 'Clientes',
+        compras: 'Compras', historial: 'Historial de Ventas', cotizaciones: 'Cotizaciones',
+        gastos: 'Gastos', reportes: 'Reportes'
+    };
+    document.getElementById('pageTitle').textContent = titles[page] || page;
+
+    const content = document.getElementById('content');
+    switch(page) {
+        case 'dashboard': loadDashboard(); break;
+        case 'productos': loadProductos(); break;
+        case 'categorias': loadCategorias(); break;
+        case 'proveedores': loadProveedores(); break;
+        case 'clientes': loadClientes(); break;
+        case 'ventas': loadVentas(); break;
+        case 'historial': loadHistorial(); break;
+        case 'facturas': loadFacturas(); break;
+        case 'compras': loadCompras(); break;
+        case 'cotizaciones': loadCotizaciones(); break;
+        case 'gastos': loadGastos(); break;
+        case 'reportes': loadReportes(); break;
+        case 'usuarios': loadUsuarios(); break;
+        default: content.innerHTML = '<div class="content-card">Pagina en construccion</div>';
+    }
+}
+
+// ========== API CALLS ==========
+async function api(endpoint, method = 'GET', body = null) {
+    const options = { method, headers: { 'Content-Type': 'application/json' } };
+    if (body) options.body = JSON.stringify(body);
+    const res = await fetch(API + endpoint, options);
+    return res.json();
+}
+
+// ========== DASHBOARD ==========
+async function loadDashboard() {
+    const data = await api('/api/dashboard');
+    document.getElementById('content').innerHTML = `
+        <div class="stats-grid">
+            <div class="stat-card"><div class="value">$${data.ventasHoy.toFixed(2)}</div><div class="label">Ventas Hoy</div></div>
+            <div class="stat-card"><div class="value">$${data.totalVentas.toFixed(2)}</div><div class="label">Ventas Totales</div></div>
+            <div class="stat-card"><div class="value">${data.totalProductos}</div><div class="label">Productos</div></div>
+            <div class="stat-card"><div class="value">${data.totalClientes}</div><div class="label">Clientes</div></div>
+            <div class="stat-card"><div class="value">$${data.totalGastos.toFixed(2)}</div><div class="label">Gastos</div></div>
+        </div>
+        <div class="content-card">
+            <h3>Bienvenido al Sistema POS</h3>
+            <p>Selecciona un modulo del menu para comenzar.</p>
+        </div>
+    `;
+}
+
+// ========== PRODUCTOS ==========
+async function loadProductos() {
+    const productos = await api('/api/productos');
+    const categorias = await api('/api/categorias');
+    const catOptions = categorias.map(c => `<option value="${c.nombre}">${c.nombre}</option>`).join('');
+
+    // Calcular valor total del stock
+    const valorStock = productos.reduce((sum, p) => sum + (p.precio_compra || 0) * (p.stock || 0), 0);
+
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="buscarProducto" placeholder="Buscar producto..." style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;width:200px;" oninput="filtrarProductos()">
+                    <select id="filtroCategoria" style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;" onchange="filtrarProductos()">
+                        <option value="">Todas las categorias</option>
+                        ${[...new Set(productos.map(p => p.categoria).filter(c => c))].map(c => `<option value="${c}">${c}</option>`).join('')}
+                    </select>
+                    <button class="btn btn-primary" onclick="exportarProductosExcel()">Exportar Excel</button>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="font-size:14px;color:#555;">${productos.length} productos | Valor stock: $${valorStock.toFixed(2)}</span>
+                    <button class="btn btn-success" onclick="modalProducto()">+ Nuevo Producto</button>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+            <table class="productos-table">
+                <thead><tr>
+                    <th>Codigo</th><th>Nombre</th><th>Descripcion 1</th><th>Descripcion 2</th>
+                    <th>Stock</th><th>Minimo</th><th>Maximo</th><th>Rubro/Familia</th><th>Observaciones</th><th>Acciones</th>
+                </tr></thead>
+                <tbody>
+    `;
+    productos.forEach(p => {
+        html += `<tr class="${p.stock <= (p.stock_minimo || 0) ? 'stock-bajo' : ''}">
+            <td class="codigo">${p.codigo || '-'}</td>
+            <td class="nombre">${p.nombre}</td>
+            <td>${p.medidas || ''}</td>
+            <td>${p.descripcion2 || ''}</td>
+            <td class="stock ${p.stock <= (p.stock_minimo || 0) ? 'stock-rojo' : ''}">${p.stock || 0}</td>
+            <td>${p.stock_minimo || 0}</td>
+            <td>${p.stock_maximo || 0}</td>
+            <td>${p.categoria || ''}</td>
+            <td>${p.observaciones || ''}</td>
+            <td class="acciones">
+                <button class="btn-edit" onclick='modalProducto(${JSON.stringify(p)})'>Editar</button>
+                <button class="btn-delete" onclick="eliminarProducto(${p.id})">X</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+    hacerTablaEditable(document.querySelector('#content table'));
+}
+
+function modalProducto(producto = null) {
+    document.getElementById('modalTitle').textContent = producto ? 'Editar Producto' : 'Nuevo Producto';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-row">
+            <div class="form-group"><label>Codigo</label><input id="prodCodigo" value="${producto?.codigo || ''}"></div>
+            <div class="form-group"><label>Nombre</label><input id="prodNombre" value="${producto?.nombre || ''}" required></div>
+        </div>
+        <div class="form-group"><label>Descripcion 1</label><input id="prodDesc1" value="${producto?.medidas || ''}"></div>
+        <div class="form-group"><label>Descripcion 2</label><input id="prodDesc2" value="${producto?.descripcion2 || ''}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Precio Compra</label><input id="prodPrecioCompra" type="number" step="0.01" value="${producto?.precio_compra || ''}"></div>
+            <div class="form-group"><label>Precio Venta</label><input id="prodPrecioVenta" type="number" step="0.01" value="${producto?.precio_venta || ''}"></div>
+        </div>
+        <div class="form-row">
+            <div class="form-group"><label>Stock</label><input id="prodStock" type="number" value="${producto?.stock || 0}"></div>
+            <div class="form-group"><label>Minimo</label><input id="prodMinimo" type="number" value="${producto?.stock_minimo || 0}"></div>
+            <div class="form-group"><label>Maximo</label><input id="prodMaximo" type="number" value="${producto?.stock_maximo || 0}"></div>
+        </div>
+        <div class="form-group"><label>Rubro/Familia</label><input id="prodRubro" value="${producto?.categoria || ''}"></div>
+        <div class="form-group"><label>Observaciones</label><input id="prodObservaciones" value="${producto?.observaciones || ''}"></div>
+        <button class="btn btn-primary" onclick="guardarProducto(${producto?.id || 'null'})" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarProducto(id) {
+    const data = {
+        codigo: document.getElementById('prodCodigo').value,
+        nombre: document.getElementById('prodNombre').value,
+        medidas: document.getElementById('prodDesc1').value,
+        descripcion2: document.getElementById('prodDesc2').value,
+        precio_compra: parseFloat(document.getElementById('prodPrecioCompra').value) || 0,
+        precio_venta: parseFloat(document.getElementById('prodPrecioVenta').value) || 0,
+        stock: parseInt(document.getElementById('prodStock').value) || 0,
+        stock_minimo: parseInt(document.getElementById('prodMinimo').value) || 0,
+        stock_maximo: parseInt(document.getElementById('prodMaximo').value) || 0,
+        categoria: document.getElementById('prodRubro').value,
+        observaciones: document.getElementById('prodObservaciones').value
+    };
+    if (id !== 'null') {
+        await api('/api/productos/' + id, 'PUT', data);
+    } else {
+        await api('/api/productos', 'POST', data);
+    }
+    closeModal();
+    loadProductos();
+}
+
+async function eliminarProducto(id) {
+    if (confirm('Eliminar este producto?')) {
+        await api('/api/productos/' + id, 'DELETE');
+        loadProductos();
+    }
+}
+
+function filtrarProductos() {
+    const busqueda = document.getElementById('buscarProducto')?.value.toLowerCase() || '';
+    const categoria = document.getElementById('filtroCategoria')?.value || '';
+
+    document.querySelectorAll('#content table tbody tr').forEach(row => {
+        const texto = row.textContent.toLowerCase();
+        const catCell = row.children[7]?.textContent || '';
+        const matchBusqueda = !busqueda || texto.includes(busqueda);
+        const matchCategoria = !categoria || catCell === categoria;
+        row.style.display = (matchBusqueda && matchCategoria) ? '' : 'none';
+    });
+}
+
+function exportarProductosExcel() {
+    api('/api/productos').then(productos => {
+        let csv = 'Codigo,Nombre,Descripcion 1,Descripcion 2,Precio Compra,Precio Venta,Stock,Minimo,Maximo,Rubro/Familia,Observaciones\n';
+        productos.forEach(p => {
+            csv += `"${p.codigo || ''}","${p.nombre || ''}","${p.medidas || ''}","${p.descripcion2 || ''}",${p.precio_compra || 0},${p.precio_venta || 0},${p.stock || 0},${p.stock_minimo || 0},${p.stock_maximo || 0},"${p.categoria || ''}","${p.observaciones || ''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'productos.csv';
+        link.click();
+    });
+}
+
+// ========== CATEGORIAS ==========
+async function loadCategorias() {
+    const categorias = await api('/api/categorias');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Categorias</h3>
+                <button class="btn btn-success" onclick="modalCategoria()">+ Nueva Categoria</button>
+            </div>
+            <table><thead><tr><th>Nombre</th><th>Acciones</th></tr></thead><tbody>
+    `;
+    categorias.forEach(c => {
+        html += `<tr><td>${c.nombre}</td>
+            <td><button class="btn btn-danger" onclick="eliminarCategoria(${c.id})">Eliminar</button></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+function modalCategoria() {
+    document.getElementById('modalTitle').textContent = 'Nueva Categoria';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Nombre</label><input id="catNombre" required></div>
+        <button class="btn btn-primary" onclick="guardarCategoria()" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarCategoria() {
+    await api('/api/categorias', 'POST', { nombre: document.getElementById('catNombre').value });
+    closeModal();
+    loadCategorias();
+}
+
+async function eliminarCategoria(id) {
+    if (confirm('Eliminar esta categoria?')) {
+        await api('/api/categorias/' + id, 'DELETE');
+        loadCategorias();
+    }
+}
+
+// ========== PROVEEDORES ==========
+async function loadProveedores() {
+    const proveedores = await api('/api/proveedores');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Proveedores</h3>
+                <button class="btn btn-success" onclick="modalProveedor()">+ Nuevo Proveedor</button>
+            </div>
+            <table><thead><tr><th>Nombre</th><th>Telefono</th><th>Email</th><th>Direccion</th><th>Acciones</th></tr></thead><tbody>
+    `;
+    proveedores.forEach(p => {
+        html += `<tr><td>${p.nombre}</td><td>${p.telefono}</td><td>${p.email}</td><td>${p.direccion}</td>
+            <td><button class="btn btn-danger" onclick="eliminarProveedor(${p.id})">Eliminar</button></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+function modalProveedor() {
+    document.getElementById('modalTitle').textContent = 'Nuevo Proveedor';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Nombre</label><input id="provNombre" required></div>
+        <div class="form-group"><label>Telefono</label><input id="provTelefono"></div>
+        <div class="form-group"><label>Email</label><input id="provEmail" type="email"></div>
+        <div class="form-group"><label>Direccion</label><input id="provDireccion"></div>
+        <button class="btn btn-primary" onclick="guardarProveedor()" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarProveedor() {
+    await api('/api/proveedores', 'POST', {
+        nombre: document.getElementById('provNombre').value,
+        telefono: document.getElementById('provTelefono').value,
+        email: document.getElementById('provEmail').value,
+        direccion: document.getElementById('provDireccion').value
+    });
+    closeModal();
+    loadProveedores();
+}
+
+async function eliminarProveedor(id) {
+    if (confirm('Eliminar este proveedor?')) {
+        await api('/api/proveedores/' + id, 'DELETE');
+        loadProveedores();
+    }
+}
+
+// ========== CLIENTES ==========
+async function loadClientes() {
+    const clientes = await api('/api/clientes');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;flex-wrap:wrap;gap:10px;">
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <input type="text" id="buscarCliente" placeholder="Buscar cliente..." style="padding:8px 12px;border:1px solid #ddd;border-radius:4px;width:200px;" oninput="filtrarClientes()">
+                    <button class="btn btn-primary" onclick="exportarClientesExcel()">Exportar Excel</button>
+                </div>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="font-size:14px;color:#555;">${clientes.length} clientes</span>
+                    <button class="btn btn-success" onclick="modalCliente()">+ Nuevo Cliente</button>
+                </div>
+            </div>
+            <div style="overflow-x:auto;">
+            <table>
+                <thead><tr>
+                    <th>Codigo</th><th>Nombre</th><th>CUIT</th><th>IVA</th><th>Razon Social</th>
+                    <th>Telefono</th><th>WhatsApp</th><th>Localidad</th><th>Pago Pendiente</th><th>Acciones</th>
+                </tr></thead>
+                <tbody>
+    `;
+    clientes.forEach(c => {
+        html += `<tr>
+            <td>${c.id}</td>
+            <td>${c.nombre}</td>
+            <td>${c.cuit || '-'}</td>
+            <td><span class="badge-iva">${c.iva || 'Consumidor Final'}</span></td>
+            <td>${c.razon_social || '-'}</td>
+            <td>${c.telefono || '-'}</td>
+            <td>${c.whatsapp || '-'}</td>
+            <td>${c.localidad || '-'}</td>
+            <td class="pago-pendiente">$${(c.pago_pendiente || 0).toFixed(2)}</td>
+            <td class="acciones">
+                <button class="btn-edit" onclick='modalCliente(${JSON.stringify(c)})' title="Editar">Editar</button>
+                <button class="btn-ventas" onclick="verVentasCliente(${c.id})" title="Ver Ventas">Ventas</button>
+                <button class="btn-cotiz" onclick="verCotizacionesCliente(${c.id})" title="Cotizaciones">Cotiz.</button>
+                <button class="btn-cuenta" onclick="verCuentaCliente(${c.id})" title="Cuenta Corriente">Cuenta</button>
+                <button class="btn-recibos" onclick="verRecibosCliente(${c.id})" title="Recibos">Recibos</button>
+                <button class="btn-info" onclick="verEstadoCliente(${c.id})" title="Ver Estado">Estado</button>
+                <button class="btn-delete" onclick="eliminarCliente(${c.id})" title="Eliminar">X</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    document.getElementById('content').innerHTML = html;
+    hacerTablaEditable(document.querySelector('#content table'));
+}
+
+function modalCliente(cliente = null) {
+    document.getElementById('modalTitle').textContent = cliente ? 'Editar Cliente' : 'Nuevo Cliente';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Nombre</label><input id="cliNombre" value="${cliente?.nombre || ''}" required></div>
+        <div class="form-row">
+            <div class="form-group"><label>CUIT</label><input id="cliCuit" value="${cliente?.cuit || ''}"></div>
+            <div class="form-group"><label>IVA</label>
+                <select id="cliIva">
+                    <option value="Consumidor Final" ${cliente?.iva === 'Consumidor Final' ? 'selected' : ''}>Consumidor Final</option>
+                    <option value="Responsable Inscripto" ${cliente?.iva === 'Responsable Inscripto' ? 'selected' : ''}>Responsable Inscripto</option>
+                    <option value="Monotributista" ${cliente?.iva === 'Monotributista' ? 'selected' : ''}>Monotributista</option>
+                    <option value="Exento" ${cliente?.iva === 'Exento' ? 'selected' : ''}>Exento</option>
+                </select>
+            </div>
+        </div>
+        <div class="form-group"><label>Razon Social</label><input id="cliRazonSocial" value="${cliente?.razon_social || ''}"></div>
+        <div class="form-row">
+            <div class="form-group"><label>Telefono</label><input id="cliTelefono" value="${cliente?.telefono || ''}"></div>
+            <div class="form-group"><label>WhatsApp</label><input id="cliWhatsapp" value="${cliente?.whatsapp || ''}"></div>
+        </div>
+        <div class="form-group"><label>Email</label><input id="cliEmail" type="email" value="${cliente?.email || ''}"></div>
+        <div class="form-group"><label>Localidad</label><input id="cliLocalidad" value="${cliente?.localidad || ''}"></div>
+        <div class="form-group"><label>Direccion</label><input id="cliDireccion" value="${cliente?.direccion || ''}"></div>
+        <button class="btn btn-primary" onclick="guardarCliente(${cliente?.id || 'null'})" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarCliente(id) {
+    const data = {
+        nombre: document.getElementById('cliNombre').value,
+        cuit: document.getElementById('cliCuit').value,
+        iva: document.getElementById('cliIva').value,
+        razon_social: document.getElementById('cliRazonSocial').value,
+        telefono: document.getElementById('cliTelefono').value,
+        whatsapp: document.getElementById('cliWhatsapp').value,
+        email: document.getElementById('cliEmail').value,
+        localidad: document.getElementById('cliLocalidad').value,
+        direccion: document.getElementById('cliDireccion').value
+    };
+    if (id !== 'null') {
+        await api('/api/clientes/' + id, 'PUT', data);
+    } else {
+        await api('/api/clientes', 'POST', data);
+    }
+    closeModal();
+    loadClientes();
+}
+
+async function eliminarCliente(id) {
+    if (confirm('Eliminar este cliente?')) {
+        await api('/api/clientes/' + id, 'DELETE');
+        loadClientes();
+    }
+}
+
+function filtrarClientes() {
+    const busqueda = document.getElementById('buscarCliente')?.value.toLowerCase() || '';
+    document.querySelectorAll('#content table tbody tr').forEach(row => {
+        const texto = row.textContent.toLowerCase();
+        row.style.display = texto.includes(busqueda) ? '' : 'none';
+    });
+}
+
+function exportarClientesExcel() {
+    api('/api/clientes').then(clientes => {
+        let csv = 'Codigo,Nombre,CUIT,IVA,Razon Social,Telefono,WhatsApp,Localidad,Direccion\n';
+        clientes.forEach(c => {
+            csv += `"${c.id}","${c.nombre}","${c.cuit || ''}","${c.iva || ''}","${c.razon_social || ''}","${c.telefono || ''}","${c.whatsapp || ''}","${c.localidad || ''}","${c.direccion || ''}"\n`;
+        });
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'clientes.csv';
+        link.click();
+    });
+}
+
+function verVentasCliente(id) {
+    showPage('historial');
+}
+
+function verCotizacionesCliente(id) {
+    showPage('cotizaciones');
+}
+
+async function verCuentaCliente(id) {
+    const data = await api('/api/cuenta-corriente/' + id);
+    const cliente = await api('/api/clientes/' + id);
+
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Cuenta Corriente - ${cliente?.nombre || 'Cliente'}</h3>
+                <button class="btn btn-primary" onclick="showPage('clientes')">Volver</button>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="value">$${data.totalVentas.toFixed(2)}</div><div class="label">Total Ventas CC</div></div>
+                <div class="stat-card"><div class="value">$${data.totalPagos.toFixed(2)}</div><div class="label">Total Pagos</div></div>
+                <div class="stat-card"><div class="value" style="color:${data.saldo > 0 ? '#e74c3c' : '#27ae60'}">$${data.saldo.toFixed(2)}</div><div class="label">Saldo Pendiente</div></div>
+            </div>
+            <h4 style="margin: 20px 0 10px;">Ventas a Cuenta Corriente</h4>
+            <table><thead><tr><th>Fecha</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+    `;
+    data.ventas.forEach(v => {
+        html += `<tr>
+            <td>${new Date(v.created_at).toLocaleString()}</td>
+            <td>$${v.total.toFixed(2)}</td>
+            <td>${v.metodo_pago}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+
+    if (data.pagos && data.pagos.length > 0) {
+        html += `<h4 style="margin: 20px 0 10px;">Pagos Realizados</h4>
+        <table><thead><tr><th>Fecha</th><th>Monto</th><th>Metodo</th><th>Concepto</th></tr></thead><tbody>`;
+        data.pagos.forEach(p => {
+            html += `<tr>
+                <td>${new Date(p.created_at).toLocaleString()}</td>
+                <td>$${p.monto.toFixed(2)}</td>
+                <td>${p.metodo_pago}</td>
+                <td>${p.concepto}</td>
+            </tr>`;
+        });
+        html += '</tbody></table>';
+    }
+
+    html += `
+            <div style="margin-top:20px;">
+                <h4>Registrar Pago</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Monto</label><input type="number" id="pagoMonto" step="0.01" placeholder="0.00"></div>
+                    <div class="form-group"><label>Metodo de Pago</label>
+                        <select id="pagoMetodo"><option value="efectivo">Efectivo</option><option value="tarjeta">Tarjeta</option><option value="transferencia">Transferencia</option></select>
+                    </div>
+                </div>
+                <div class="form-group"><label>Concepto</label><input id="pagoConcepto" placeholder="Pago de cuenta corriente"></div>
+                <button class="btn btn-success" onclick="registrarPago(${id})" style="width:100%;">Registrar Pago</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('content').innerHTML = html;
+}
+
+async function registrarPago(clienteId) {
+    const monto = parseFloat(document.getElementById('pagoMonto').value);
+    if (!monto || monto <= 0) { alert('Ingresa un monto válido'); return; }
+
+    await api('/api/pagos', 'POST', {
+        cliente_id: clienteId,
+        monto: monto,
+        metodo_pago: document.getElementById('pagoMetodo').value,
+        concepto: document.getElementById('pagoConcepto').value
+    });
+    alert('Pago registrado exitosamente!');
+    verCuentaCliente(clienteId);
+}
+
+function verRecibosCliente(id) {
+    alert('Funcionalidad de recibos - proximamente');
+}
+
+function verEstadoCliente(id) {
+    api('/api/clientes/' + id).then(c => {
+        if (c) {
+            alert(`Estado del Cliente: ${c.nombre}\n\nCUIT: ${c.cuit || '-'}\nIVA: ${c.iva || '-'}\nTelefono: ${c.telefono || '-'}\nWhatsApp: ${c.whatsapp || '-'}\nLocalidad: ${c.localidad || '-'}\nPago Pendiente: $${(c.pago_pendiente || 0).toFixed(2)}`);
+        }
+    });
+}
+
+// ========== VENTAS ==========
+async function loadVentas() {
+    const productos = await api('/api/productos');
+    const clientes = await api('/api/clientes');
+
+    let html = `
+        <div class="content-card">
+            <h3>Registrar Venta</h3>
+            <div class="venta-buscar">
+                <label>Descuento %</label>
+                <div style="display:flex;gap:10px;align-items:center;">
+                    <input type="number" id="ventaDescuento" value="0" min="0" max="100" style="width:80px;padding:8px 12px;border:1px solid #2a2a4a;border-radius:4px;background:#16213e;color:#eee;" onchange="recalcularTotal()">
+                    <input type="text" id="buscarProductoVenta" placeholder="Buscar por codigo, descripcion 1 o descripcion 2..." style="flex:1;padding:8px 12px;border:1px solid #2a2a4a;border-radius:4px;background:#16213e;color:#eee;" oninput="buscarProductoVenta()">
+                    <button class="btn btn-primary" onclick="buscarProductoVenta()">Buscar</button>
+                </div>
+            </div>
+            <div class="venta-productos">
+                <h4>Productos en Venta</h4>
+                <div style="overflow-x:auto;">
+                <table id="tablaVenta">
+                    <thead><tr><th>Producto</th><th>Cant</th><th>Precio</th><th>Precio con Descuento</th><th>Subtotal</th><th></th></tr></thead>
+                    <tbody></tbody>
+                </table>
+                </div>
+                <p id="sinProductos" style="text-align:center;color:#666;padding:20px;">Sin productos. Busque y agregue productos arriba.</p>
+            </div>
+            <div class="venta-total">Total: $<span id="ventaTotal">0.00</span></div>
+            <div class="venta-completar">
+                <h4>Completar Venta</h4>
+                <div class="form-row">
+                    <div class="form-group"><label>Fecha</label><input type="date" id="ventaFecha" value="${new Date().toISOString().split('T')[0]}"></div>
+                    <div class="form-group"><label>Forma Pago</label>
+                        <select id="ventaMetodo">
+                            <option value="efectivo">Efectivo</option>
+                            <option value="tarjeta">Tarjeta</option>
+                            <option value="transferencia">Transferencia</option>
+                            <option value="cuenta_corriente">Cuenta Corriente</option>
+                            <option value="otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>Cliente *</label>
+                        <select id="ventaCliente"><option value="">Seleccionar cliente (obligatorio)</option>
+                            ${clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('')}
+                        </select>
+                    </div>
+                </div>
+                <button class="btn btn-success" onclick="guardarVenta()" style="width:100%;margin-top:15px;font-size:16px;">Completar Venta (<span id="cantidadProductos">0</span> productos)</button>
+            </div>
+        </div>
+    `;
+    document.getElementById('content').innerHTML = html;
+}
+
+function buscarProductoVenta() {
+    const busqueda = document.getElementById('buscarProductoVenta').value.toLowerCase();
+    if (!busqueda) return;
+
+    api('/api/productos').then(productos => {
+        const encontrado = productos.find(p =>
+            (p.codigo && p.codigo.toLowerCase().includes(busqueda)) ||
+            (p.nombre && p.nombre.toLowerCase().includes(busqueda)) ||
+            (p.medidas && p.medidas.toLowerCase().includes(busqueda)) ||
+            (p.descripcion2 && p.descripcion2.toLowerCase().includes(busqueda))
+        );
+
+        if (encontrado) {
+            agregarProductoAVenta(encontrado);
+            document.getElementById('buscarProductoVenta').value = '';
+        } else {
+            alert('Producto no encontrado');
+        }
+    });
+}
+
+function agregarProductoAVenta(producto) {
+    const tbody = document.querySelector('#tablaVenta tbody');
+    const descuento = parseFloat(document.getElementById('ventaDescuento').value) || 0;
+    const precioOriginal = producto.precio_venta || 0;
+    const precioConDescuento = precioOriginal * (1 - descuento / 100);
+
+    const tr = document.createElement('tr');
+    tr.dataset.productoId = producto.id;
+    tr.dataset.precio = precioOriginal;
+    tr.innerHTML = `
+        <td class="prod-nombre">${producto.nombre}</td>
+        <td><input type="number" class="prod-cant" value="1" min="1" onchange="recalcularTotal()"></td>
+        <td class="prod-precio">$${precioOriginal.toFixed(2)}</td>
+        <td class="prod-precio-descuento">$${precioConDescuento.toFixed(2)}</td>
+        <td class="prod-subtotal">$${precioConDescuento.toFixed(2)}</td>
+        <td><button class="btn-delete" onclick="this.parentElement.parentElement.remove();recalcularTotal()">X</button></td>
+    `;
+    tbody.appendChild(tr);
+    document.getElementById('sinProductos').style.display = 'none';
+    recalcularTotal();
+}
+
+function parseCantidad(val) {
+    if (!val) return 0;
+    // Reemplazar coma por punto para formato argentino
+    const cleaned = val.toString().replace(',', '.');
+    return parseFloat(cleaned) || 0;
+}
+
+function recalcularTotal() {
+    const descuento = parseFloat(document.getElementById('ventaDescuento').value) || 0;
+    let total = 0;
+    let cantidad = 0;
+
+    document.querySelectorAll('#tablaVenta tbody tr').forEach(row => {
+        const precioOriginal = parseFloat(row.dataset.precio) || 0;
+        const cant = parseCantidad(row.querySelector('.prod-cant').value);
+        const precioConDescuento = precioOriginal * (1 - descuento / 100);
+        const subtotal = precioConDescuento * cant;
+
+        row.querySelector('.prod-precio-descuento').textContent = '$' + precioConDescuento.toFixed(2);
+        row.querySelector('.prod-subtotal').textContent = '$' + subtotal.toFixed(2);
+        total += subtotal;
+        cantidad += cant;
+    });
+
+    document.getElementById('ventaTotal').textContent = total.toFixed(2);
+    document.getElementById('cantidadProductos').textContent = cantidad;
+}
+
+async function guardarVenta() {
+    const items = [];
+    document.querySelectorAll('#tablaVenta tbody tr').forEach(row => {
+        const prodId = row.dataset.productoId;
+        const cant = parseCantidad(row.querySelector('.prod-cant').value);
+        const precioOriginal = parseFloat(row.dataset.precio) || 0;
+        const descuento = parseFloat(document.getElementById('ventaDescuento').value) || 0;
+        const precioConDescuento = precioOriginal * (1 - descuento / 100);
+
+        if (prodId && cant > 0) {
+            items.push({
+                producto_id: parseInt(prodId),
+                cantidad: cant,
+                precio_unitario: precioConDescuento
+            });
+        }
+    });
+
+    if (items.length === 0) { alert('Agrega al menos un producto'); return; }
+
+    const clienteId = document.getElementById('ventaCliente').value;
+    if (!clienteId) { alert('Selecciona un cliente (obligatorio)'); return; }
+
+    const total = parseFloat(document.getElementById('ventaTotal').textContent);
+    const result = await api('/api/ventas', 'POST', {
+        cliente_id: parseInt(clienteId),
+        total,
+        metodo_pago: document.getElementById('ventaMetodo').value,
+        items
+    });
+    if (result.success) {
+        const imprimir = confirm('Venta registrada exitosamente!\n\n¿Desea imprimir la factura ahora?');
+        if (imprimir) {
+            verFactura(result.id);
+        } else {
+            loadVentas();
+        }
+    }
+}
+
+// ========== FACTURAS ==========
+async function loadFacturas() {
+    const ventas = await api('/api/ventas');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Facturas</h3>
+                <span style="font-size:14px;color:#555;">${ventas.length} facturas emitidas</span>
+            </div>
+            <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>N° Factura</th><th>Fecha</th><th>Cliente</th><th>Metodo Pago</th><th>Total</th><th>Acciones</th></tr></thead>
+                <tbody>
+    `;
+    ventas.forEach(v => {
+        html += `<tr>
+            <td>#${String(v.id).padStart(6, '0')}</td>
+            <td>${new Date(v.created_at).toLocaleString()}</td>
+            <td>${v.cliente_nombre || 'Sin cliente'}</td>
+            <td>${v.metodo_pago}</td>
+            <td class="pago-pendiente">$${v.total.toFixed(2)}</td>
+            <td>
+                <button class="btn-edit" onclick="verFactura(${v.id})">Ver / Imprimir</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    document.getElementById('content').innerHTML = html;
+    hacerTablaEditable(document.querySelector('#content table'));
+}
+
+async function verFactura(ventaId) {
+    const data = await api('/api/facturas/' + ventaId);
+    const { venta, cliente, productos } = data;
+
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Factura #INT-${String(venta.id).padStart(8, '0')}</h3>
+                <div>
+                    <button class="btn btn-primary" onclick="imprimirFactura()">Imprimir</button>
+                    <button class="btn btn-warning" onclick="showPage('facturas')">Volver</button>
+                </div>
+            </div>
+            <div id="facturaImprimible" style="background:white;color:black;padding:30px;border-radius:8px;font-family:Arial,sans-serif;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:20px;">
+                    <div>
+                        <h1 style="margin:0;font-size:28px;">CAÑOS EMBALSE</h1>
+                        <p style="margin:5px 0;color:#666;">Hipolito Yrigoyen 546</p>
+                        <p style="margin:5px 0;color:#666;">Tel: 3571 637747 | canosembalse@gmail.com</p>
+                    </div>
+                    <div style="border:2px solid #333;padding:15px 25px;text-align:center;">
+                        <p style="margin:0;font-size:12px;color:#666;">Interna</p>
+                        <h2 style="margin:5px 0;font-size:24px;">INT-${String(venta.id).padStart(8, '0')}</h2>
+                        <p style="margin:5px 0;font-size:12px;color:#666;">Fecha: ${new Date(venta.created_at).toLocaleString()}</p>
+                    </div>
+                </div>
+                <div style="display:flex;gap:20px;margin-bottom:20px;">
+                    <div style="flex:1;border:1px solid #333;padding:15px;">
+                        <h4 style="margin:0 0 10px;border-bottom:1px solid #333;padding-bottom:5px;">DATOS DEL CLIENTE</h4>
+                        <p style="margin:5px 0;"><strong>${cliente?.nombre || 'Consumidor Final'}</strong></p>
+                        <p style="margin:5px 0;">CUIT: ${cliente?.cuit || '-'}</p>
+                        <p style="margin:5px 0;">Condicion IVA: ${cliente?.iva || 'Consumidor Final'}</p>
+                    </div>
+                    <div style="flex:1;border:1px solid #333;padding:15px;">
+                        <h4 style="margin:0 0 10px;border-bottom:1px solid #333;padding-bottom:5px;">DATOS DE LA VENTA</h4>
+                        <p style="margin:5px 0;">Vendedor: ${currentUser?.username || 'Administrador'}</p>
+                        <p style="margin:5px 0;">Forma de pago: ${venta.metodo_pago}</p>
+                    </div>
+                </div>
+                <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+                    <thead>
+                        <tr style="border:2px solid #333;">
+                            <th style="padding:8px;border:1px solid #333;text-align:center;width:40px;">#</th>
+                            <th style="padding:8px;border:1px solid #333;text-align:left;">Detalle</th>
+                            <th style="padding:8px;border:1px solid #333;text-align:center;width:80px;">Cant.</th>
+                            <th style="padding:8px;border:1px solid #333;text-align:right;width:120px;">Precio</th>
+                            <th style="padding:8px;border:1px solid #333;text-align:right;width:120px;">Subtotal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    productos.forEach((p, i) => {
+        const medidas = p.medidas || '';
+        const desc2 = p.descripcion2 || '';
+        const descripcionCompleta = [p.producto_nombre, medidas, desc2].filter(Boolean).join(' - ');
+        html += `<tr style="border:1px solid #333;">
+            <td style="padding:8px;border:1px solid #333;text-align:center;">${i + 1}</td>
+            <td style="padding:8px;border:1px solid #333;">${descripcionCompleta}</td>
+            <td style="padding:8px;border:1px solid #333;text-align:center;">${p.cantidad}</td>
+            <td style="padding:8px;border:1px solid #333;text-align:right;">$${p.precio_unitario.toFixed(2)}</td>
+            <td style="padding:8px;border:1px solid #333;text-align:right;">$${(p.cantidad * p.precio_unitario).toFixed(2)}</td>
+        </tr>`;
+    });
+    html += `
+                    </tbody>
+                </table>
+                <div style="text-align:right;margin-top:20px;">
+                    <p style="font-size:16px;margin:5px 0;">Valor Total Real: <strong>$${venta.total.toFixed(2)}</strong></p>
+                    <p style="font-size:20px;margin:10px 0;border-top:2px solid #333;padding-top:10px;">Valor con Descuento / TOTAL: <strong>$${venta.total.toFixed(2)}</strong></p>
+                </div>
+            </div>
+        </div>
+    `;
+    document.getElementById('content').innerHTML = html;
+}
+
+function imprimirFactura() {
+    const factura = document.getElementById('facturaImprimible');
+    const ventana = window.open('', '_blank');
+    ventana.document.write(`
+        <html>
+        <head>
+            <title>Factura</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 20px; }
+                @media print { body { margin: 0; } }
+            </style>
+        </head>
+        <body>${factura.innerHTML}</body>
+        </html>
+    `);
+    ventana.document.close();
+    ventana.print();
+}
+
+// ========== HISTORIAL ==========
+async function loadHistorial() {
+    const ventas = await api('/api/ventas');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Historial de Ventas</h3>
+                <span style="font-size:14px;color:#555;">${ventas.length} ventas registradas</span>
+            </div>
+            <div style="overflow-x:auto;">
+            <table>
+                <thead><tr><th>Fecha</th><th>Cliente</th><th>Metodo Pago</th><th>Total</th></tr></thead>
+                <tbody>
+    `;
+    ventas.forEach(v => {
+        html += `<tr>
+            <td>${new Date(v.created_at).toLocaleString()}</td>
+            <td>${v.cliente_nombre || 'Sin cliente'}</td>
+            <td>${v.metodo_pago}</td>
+            <td class="pago-pendiente">$${v.total.toFixed(2)}</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div></div>';
+    document.getElementById('content').innerHTML = html;
+    hacerTablaEditable(document.querySelector('#content table'));
+}
+
+// ========== COMPRAS ==========
+async function loadCompras() {
+    const compras = await api('/api/compras');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Compras</h3>
+                <button class="btn btn-success" onclick="modalCompra()">+ Nueva Compra</button>
+            </div>
+            <table><thead><tr><th>Fecha</th><th>Proveedor</th><th>Producto</th><th>Cantidad</th><th>Costo</th></tr></thead><tbody>
+    `;
+    compras.forEach(c => {
+        html += `<tr><td>${new Date(c.created_at).toLocaleString()}</td><td>${c.proveedor_id || '-'}</td><td>${c.producto_id || '-'}</td><td>${c.cantidad}</td><td>$${c.costo?.toFixed(2) || '0.00'}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+function modalCompra() {
+    document.getElementById('modalTitle').textContent = 'Nueva Compra';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Proveedor</label><input id="compraProv"></div>
+        <div class="form-group"><label>Producto</label><input id="compraProd"></div>
+        <div class="form-group"><label>Cantidad</label><input id="compraCant" type="number"></div>
+        <div class="form-group"><label>Costo</label><input id="compraCosto" type="number" step="0.01"></div>
+        <button class="btn btn-primary" onclick="guardarCompra()" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarCompra() {
+    await api('/api/compras', 'POST', {
+        proveedor_id: document.getElementById('compraProv').value,
+        producto_id: document.getElementById('compraProd').value,
+        cantidad: parseInt(document.getElementById('compraCant').value),
+        costo: parseFloat(document.getElementById('compraCosto').value)
+    });
+    closeModal();
+    loadCompras();
+}
+
+// ========== GASTOS ==========
+async function loadGastos() {
+    const gastos = await api('/api/gastos');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Gastos</h3>
+                <button class="btn btn-success" onclick="modalGasto()">+ Nuevo Gasto</button>
+            </div>
+            <table><thead><tr><th>Fecha</th><th>Descripcion</th><th>Monto</th><th>Acciones</th></tr></thead><tbody>
+    `;
+    gastos.forEach(g => {
+        html += `<tr><td>${new Date(g.created_at).toLocaleString()}</td><td>${g.descripcion}</td><td>$${g.monto.toFixed(2)}</td>
+            <td><button class="btn btn-danger" onclick="eliminarGasto(${g.id})">Eliminar</button></td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+function modalGasto() {
+    document.getElementById('modalTitle').textContent = 'Nuevo Gasto';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Descripcion</label><input id="gastoDesc" required></div>
+        <div class="form-group"><label>Monto</label><input id="gastoMonto" type="number" step="0.01" required></div>
+        <button class="btn btn-primary" onclick="guardarGasto()" style="width:100%;">Guardar</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarGasto() {
+    await api('/api/gastos', 'POST', {
+        descripcion: document.getElementById('gastoDesc').value,
+        monto: parseFloat(document.getElementById('gastoMonto').value)
+    });
+    closeModal();
+    loadGastos();
+}
+
+async function eliminarGasto(id) {
+    if (confirm('Eliminar este gasto?')) {
+        await api('/api/gastos/' + id, 'DELETE');
+        loadGastos();
+    }
+}
+
+// ========== COTIZACIONES ==========
+async function loadCotizaciones() {
+    const cotizaciones = await api('/api/cotizaciones');
+    let html = `
+        <div class="content-card">
+            <h3>Cotizaciones</h3>
+            <table><thead><tr><th>Fecha</th><th>Cliente</th><th>Total</th><th>Estado</th></tr></thead><tbody>
+    `;
+    cotizaciones.forEach(c => {
+        html += `<tr><td>${new Date(c.created_at).toLocaleString()}</td><td>${c.cliente_id || '-'}</td><td>$${c.total?.toFixed(2) || '0.00'}</td><td>${c.estado}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+// ========== REPORTES ==========
+async function loadReportes() {
+    const ventas = await api('/api/reportes/ventas');
+    const totalVentas = ventas.reduce((sum, v) => sum + v.total, 0);
+
+    let html = `
+        <div class="content-card">
+            <h3>Reporte de Ventas</h3>
+            <div style="margin: 15px 0; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                <strong>Total Ventas: $${totalVentas.toFixed(2)}</strong> | <strong>Cantidad: ${ventas.length}</strong>
+            </div>
+            <table><thead><tr><th>Fecha</th><th>Total</th><th>Metodo Pago</th></tr></thead><tbody>
+    `;
+    ventas.forEach(v => {
+        html += `<tr><td>${new Date(v.created_at).toLocaleString()}</td><td>$${v.total.toFixed(2)}</td><td>${v.metodo_pago}</td></tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+// ========== USUARIOS ==========
+async function loadUsuarios() {
+    const usuarios = await api('/api/usuarios');
+    let html = `
+        <div class="content-card">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <h3>Gestion de Usuarios</h3>
+                <button class="btn btn-success" onclick="modalUsuario()">+ Nuevo Usuario</button>
+            </div>
+            <table>
+                <thead><tr><th>ID</th><th>Usuario</th><th>Rol</th><th>Fecha Creacion</th><th>Acciones</th></tr></thead>
+                <tbody>
+    `;
+    usuarios.forEach(u => {
+        html += `<tr>
+            <td>${u.id}</td>
+            <td>${u.username}</td>
+            <td><span class="badge-iva">${u.rol}</span></td>
+            <td>${new Date(u.created_at).toLocaleDateString()}</td>
+            <td>
+                <button class="btn-delete" onclick="eliminarUsuario(${u.id})">Eliminar</button>
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    document.getElementById('content').innerHTML = html;
+}
+
+function modalUsuario() {
+    document.getElementById('modalTitle').textContent = 'Nuevo Usuario';
+    document.getElementById('modalBody').innerHTML = `
+        <div class="form-group"><label>Nombre de Usuario</label><input id="userUsername" required></div>
+        <div class="form-group"><label>Contraseña</label><input id="userPassword" type="password" required></div>
+        <div class="form-group"><label>Rol</label>
+            <select id="userRol">
+                <option value="vendedor">Vendedor</option>
+                <option value="admin">Administrador</option>
+            </select>
+        </div>
+        <button class="btn btn-primary" onclick="guardarUsuario()" style="width:100%;">Crear Usuario</button>
+    `;
+    document.getElementById('modal').style.display = 'flex';
+}
+
+async function guardarUsuario() {
+    const username = document.getElementById('userUsername').value;
+    const password = document.getElementById('userPassword').value;
+    const rol = document.getElementById('userRol').value;
+
+    if (!username || !password) { alert('Completa todos los campos'); return; }
+
+    await api('/api/usuarios', 'POST', { username, password, rol });
+    closeModal();
+    loadUsuarios();
+}
+
+async function eliminarUsuario(id) {
+    if (confirm('Eliminar este usuario?')) {
+        await api('/api/usuarios/' + id, 'DELETE');
+        loadUsuarios();
+    }
+}
+
+// ========== MODAL ==========
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+}
+
+// ========== TABLAS EDITABLES (REDIMENSIONAR Y REORDENAR COLUMNAS) ==========
+function hacerTablaEditable(table) {
+    if (!table || table.dataset.editable === 'true') return;
+    table.dataset.editable = 'true';
+    table.classList.add('tabla-editable');
+
+    const headers = table.querySelectorAll('th');
+    headers.forEach((th, index) => {
+        // Agregar handle para redimensionar
+        const handle = document.createElement('div');
+        handle.className = 'resize-handle';
+        th.appendChild(handle);
+
+        // Redimensionar columnas
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handle.classList.add('resizing');
+            const startX = e.pageX;
+            const startWidth = th.offsetWidth;
+
+            function onMouseMove(e) {
+                const newWidth = startWidth + (e.pageX - startX);
+                if (newWidth > 30) {
+                    th.style.width = newWidth + 'px';
+                    // Aplicar a todas las celdas de la columna
+                    table.querySelectorAll('tr').forEach(row => {
+                        const cell = row.children[index];
+                        if (cell) cell.style.width = newWidth + 'px';
+                    });
+                }
+            }
+
+            function onMouseUp() {
+                handle.classList.remove('resizing');
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            }
+
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        // Reordenar columnas (drag & drop)
+        th.draggable = true;
+        th.addEventListener('dragstart', (e) => {
+            th.classList.add('dragging');
+            e.dataTransfer.setData('text/plain', index);
+        });
+        th.addEventListener('dragend', () => {
+            th.classList.remove('dragging');
+            headers.forEach(h => h.classList.remove('drag-over'));
+        });
+        th.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            th.classList.add('drag-over');
+        });
+        th.addEventListener('dragleave', () => {
+            th.classList.remove('drag-over');
+        });
+        th.addEventListener('drop', (e) => {
+            e.preventDefault();
+            const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+            const toIndex = index;
+            if (fromIndex !== toIndex) {
+                moverColumna(table, fromIndex, toIndex);
+            }
+            th.classList.remove('drag-over');
+        });
+    });
+}
+
+function moverColumna(table, fromIndex, toIndex) {
+    table.querySelectorAll('tr').forEach(row => {
+        const cells = row.children;
+        const cell = cells[fromIndex];
+        if (cell) {
+            row.removeChild(cell);
+            if (toIndex >= cells.length - 1) {
+                row.appendChild(cell);
+            } else {
+                row.insertBefore(cell, cells[toIndex]);
+            }
+        }
+    });
+}
+</script>
+</body>
+</html>
